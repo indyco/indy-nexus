@@ -1,0 +1,186 @@
+# =========================
+# SECURITY & SENSITIVE DATA
+# =========================
+
+# Database files - NEVER commit user data!
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+/data/
+/database/
+
+# Environment variables - NEVER commit secrets!
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+!.env.example
+
+# Private keys and certificates
+*.pem
+*.key
+*.crt
+*.cert
+*.pfx
+*.p12
+private/
+secrets/
+
+# =========================
+# NODE.JS
+# =========================
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+.npm
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage and testing
+coverage/
+*.lcov
+.nyc_output/
+lib-cov/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+*.tsbuildinfo
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# =========================
+# OPERATING SYSTEM
+# =========================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# =========================
+# IDE & EDITORS
+# =========================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.local
+
+# IntelliJ IDEA / WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*.swn
+.*.swp
+Session.vim
+tags
+
+# =========================
+# TEMPORARY FILES
+# =========================
+
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# =========================
+# PACKAGE MANAGERS
+# =========================
+
+# npm pack output
+*.tgz
+
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# =========================
+# PROJECT SPECIFIC
+# =========================
+
+# Uploaded files
+uploads/
+public/uploads/
+
+# Session storage
+sessions/
+
+# PM2 process manager
+.pm2/
+ecosystem.config.js.bak

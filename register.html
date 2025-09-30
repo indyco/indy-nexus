@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indy Nexus - Register</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="auth-styles.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">INDY.NEXUS</h1>
+            <h2 class="auth-subtitle">Create Account</h2>
+            
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required
+                        minlength="3"
+                        maxlength="30"
+                        pattern="^[a-zA-Z0-9_]+$"
+                        autocomplete="username"
+                        class="form-input"
+                    >
+                    <div class="input-hint">3-30 characters, alphanumeric and underscore only</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required
+                        autocomplete="email"
+                        class="form-input"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required
+                        minlength="20"
+                        maxlength="84"
+                        autocomplete="new-password"
+                        class="form-input"
+                    >
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <div class="password-requirements">
+                        <div id="lengthCheck" class="requirement">✗ 20-84 characters</div>
+                        <div id="upperCheck" class="requirement">✗ At least one uppercase letter</div>
+                        <div id="lowerCheck" class="requirement">✗ At least one lowercase letter</div>
+                        <div id="numberCheck" class="requirement">✗ At least one number</div>
+                        <div id="specialCheck" class="requirement">✗ At least one special character</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        name="confirmPassword" 
+                        required
+                        minlength="20"
+                        maxlength="84"
+                        autocomplete="new-password"
+                        class="form-input"
+                    >
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+                
+                <button type="submit" class="auth-button">Register</button>
+            </form>
+            
+            <div class="auth-links">
+                <p>Already have an account? <a href="login.html">Login</a></p>
+                <p><a href="index.html">← Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="auth.js"></script>
+</body>
+</html>

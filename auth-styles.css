@@ -1,0 +1,249 @@
+/* Authentication Specific Styles */
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+    padding: 20px;
+}
+
+.auth-box {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00ff00;
+    border-radius: 8px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+}
+
+.auth-title {
+    font-size: 2.5rem;
+    color: #00ff00;
+    text-align: center;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px #00ff00;
+    letter-spacing: 3px;
+}
+
+.auth-subtitle {
+    font-size: 1.2rem;
+    color: #00cc00;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: normal;
+}
+
+.auth-form {
+    margin-top: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #00ff00;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: #000000;
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #00ff00;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    background: #0a0a0a;
+}
+
+.form-input:valid {
+    border-color: #00cc00;
+}
+
+.form-input:invalid:not(:placeholder-shown) {
+    border-color: #ff0000;
+}
+
+.password-requirements {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #00aa00;
+}
+
+.requirement {
+    padding: 3px 0;
+    color: #00aa00;
+    transition: color 0.3s ease;
+}
+
+.requirement.valid {
+    color: #00ff00;
+}
+
+.requirement.invalid {
+    color: #ff0000;
+}
+
+.input-hint {
+    font-size: 0.85rem;
+    color: #00aa00;
+    margin-top: 5px;
+}
+
+.password-strength {
+    height: 4px;
+    background: #333;
+    margin-top: 10px;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.password-strength::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-strength.weak::after {
+    width: 33%;
+    background-color: #ff0000;
+}
+
+.password-strength.medium::after {
+    width: 66%;
+    background-color: #ffaa00;
+}
+
+.password-strength.strong::after {
+    width: 100%;
+    background-color: #00ff00;
+}
+
+.auth-button {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    color: #00ff00;
+    border: 2px solid #00ff00;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+    margin-top: 20px;
+    border-radius: 4px;
+}
+
+.auth-button:hover {
+    background-color: #00ff00;
+    color: #000000;
+    box-shadow: 0 0 20px #00ff00;
+}
+
+.auth-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error-message {
+    color: #ff0000;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.95rem;
+    padding: 10px;
+    border: 1px solid #ff0000;
+    background: rgba(255, 0, 0, 0.1);
+    border-radius: 4px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+.success-message {
+    color: #00ff00;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.95rem;
+    padding: 10px;
+    border: 1px solid #00ff00;
+    background: rgba(0, 255, 0, 0.1);
+    border-radius: 4px;
+    display: none;
+}
+
+.success-message.show {
+    display: block;
+}
+
+.auth-links {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.auth-links p {
+    margin: 10px 0;
+    color: #00cc00;
+}
+
+.auth-links a {
+    color: #00ff00;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.auth-links a:hover {
+    text-shadow: 0 0 10px #00ff00;
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0, 255, 0, 0.3);
+    border-radius: 50%;
+    border-top-color: #00ff00;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .auth-box {
+        padding: 30px 20px;
+    }
+    
+    .auth-title {
+        font-size: 2rem;
+    }
+    
+    .auth-subtitle {
+        font-size: 1rem;
+    }
+}
