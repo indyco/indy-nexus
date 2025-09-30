@@ -21,10 +21,10 @@ echo "[1/10] Updating system packages..."
 apt-get update
 apt-get upgrade -y
 
-# Install Node.js and npm
-echo "[2/10] Installing Node.js and npm..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt-get install -y nodejs build-essential
+# Install Node.js and npm (v20 LTS)
+echo "[2/10] Installing Node.js v20 LTS and npm..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs build-essential python3
 
 # Install nginx
 echo "[3/10] Installing nginx..."
@@ -41,11 +41,40 @@ mkdir -p /var/www/indy.nexus
 
 # Copy all files
 echo "[6/10] Copying application files..."
-cp -r *.html *.css *.js package.json server.js /opt/indy-nexus/
+cp -r *.html *.css *.js *.json *.md server*.js admin.js /opt/indy-nexus/ 2>/dev/null || true
+cp .env.example /opt/indy-nexus/.env.example 2>/dev/null || true
 
-# Install Node.js dependencies
+# Install Node.js dependencies and setup environment
 echo "[7/10] Installing Node.js dependencies..."
 cd /opt/indy-nexus
+
+# Create .env file with secure JWT secret
+if [ ! -f .env ]; then
+    JWT_SECRET=$(openssl rand -hex 64)
+    cat > .env << EOL
+# Server Configuration
+PORT=3000
+NODE_ENV=production
+
+# Security
+JWT_SECRET=$JWT_SECRET
+
+# Database
+DATABASE_PATH=./users.db
+
+# Authentication Settings  
+REQUIRE_USER_APPROVAL=false
+MAX_LOGIN_ATTEMPTS=5
+LOCKOUT_DURATION_MINUTES=30
+SESSION_DURATION_HOURS=24
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=5
+EOL
+    echo "Created .env file with secure JWT_SECRET"
+fi
+
 npm install --production
 
 # Create systemd service for Node.js backend
@@ -63,7 +92,7 @@ ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=10
 Environment=NODE_ENV=production
-Environment=JWT_SECRET=CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_$(openssl rand -hex 32)
+EnvironmentFile=/opt/indy-nexus/.env
 
 # Security settings
 NoNewPrivileges=true
@@ -145,6 +174,57 @@ systemctl enable nginx
 # Wait for backend to start
 sleep 5
 
+# Create initial admin user (optional)
+echo ""
+echo "Creating initial admin user (optional)..."
+cat > /opt/indy-nexus/create-admin.js << 'EOFADMIN'
+require('dotenv').config();
+const Database = require('better-sqlite3');
+const argon2 = require('argon2');
+
+const db = new Database('./users.db');
+
+async function createAdmin() {
+    try {
+        // Check if any users exist
+        const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+        if (userCount.count > 0) {
+            console.log('Users already exist, skipping admin creation');
+            return;
+        }
+        
+        const username = 'admin';
+        const email = 'admin@localhost';
+        const password = 'AdminPass2024!@#$';
+        
+        const passwordHash = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 65536,
+            timeCost: 3,
+            parallelism: 4
+        });
+        
+        db.prepare(`
+            INSERT INTO users (username, email, password_hash, is_approved)
+            VALUES (?, ?, ?, 1)
+        `).run(username, email, passwordHash);
+        
+        console.log('\n✅ Initial admin user created:');
+        console.log('   Username: admin');
+        console.log('   Password: AdminPass2024!@#$');
+        console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
+    } catch (err) {
+        console.log('Admin user creation skipped:', err.message);
+    }
+}
+
+createAdmin().then(() => process.exit(0));
+EOFADMIN
+
+cd /opt/indy-nexus
+node create-admin.js || true
+rm -f create-admin.js
+
 # Check service status
 echo ""
 echo "==========================================="
@@ -155,16 +235,33 @@ systemctl status nginx --no-pager
 
 echo ""
 echo "==========================================="
-echo "Deployment Complete!"
+echo "✅ Deployment Complete!"
 echo "==========================================="
-echo "Website: http://127.0.0.1:46228"
-echo "API Backend: http://127.0.0.1:3000"
 echo ""
-echo "Security Notes:"
-echo "1. Change JWT_SECRET in /etc/systemd/system/indy-nexus-backend.service"
-echo "2. Database is stored at /opt/indy-nexus/users.db"
-echo "3. Logs: journalctl -u indy-nexus-backend -f"
+echo "📍 Access Points:"
+echo "   Main Site:    http://127.0.0.1:46228"
+echo "   Login Page:   http://127.0.0.1:46228/login.html"
+echo "   Register:     http://127.0.0.1:46228/register.html"
+echo "   API Backend:  http://127.0.0.1:3000"
 echo ""
-echo "Test the authentication:"
-echo "curl -X GET http://127.0.0.1:3000/api/health"
+echo "🔐 Admin Access:"
+if [ -f /opt/indy-nexus/users.db ]; then
+    echo "   Admin panel:  node /opt/indy-nexus/admin.js"
+fi
+echo ""
+echo "📁 Important Locations:"
+echo "   App Directory:  /opt/indy-nexus/"
+echo "   Database:       /opt/indy-nexus/users.db"
+echo "   Config:         /opt/indy-nexus/.env"
+echo "   Logs:           journalctl -u indy-nexus-backend -f"
+echo ""
+echo "🧪 Test Commands:"
+echo "   Health check:   curl http://127.0.0.1:3000/api/health"
+echo "   Service status: systemctl status indy-nexus-backend"
+echo ""
+echo "⚠️  Next Steps:"
+echo "   1. If admin user was created, login and change the password"
+echo "   2. Configure firewall rules if needed"
+echo "   3. Setup SSL/TLS for production use"
+echo "   4. Configure backup for database"
 echo ""
