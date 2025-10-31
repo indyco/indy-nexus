@@ -114,19 +114,23 @@ All configuration is done through environment variables. See `.env.example` for 
 
 ## 👤 User Management
 
-### Admin CLI Tool
-Use the included admin tool to manage users:
+### Admin Quick Commands
 
 ```bash
-# Run the admin CLI
+# Interactive admin console
 node admin.js
 
-# Available commands:
-# - List pending users
-# - Approve users
-# - Reject users
-# - View user details
-# - Create admin account
+# Quick approve user by ID
+# Linux/Mac:
+node admin.js approve <id>
+# Windows PowerShell:
+node .\admin.js approve <id>
+
+# List pending users
+# Linux/Mac:
+node admin.js list-pending
+# Windows PowerShell:  
+node .\admin.js list-pending
 ```
 
 ### Default Flow
@@ -154,11 +158,31 @@ node admin.js
 7. **Use environment variables** - Never hardcode secrets
 8. **Run behind reverse proxy** - nginx/Apache recommended
 
-### Database Security
-- Database files are automatically excluded from git
-- Use file system permissions to protect database
-- Consider encryption at rest for production
-- Regular backups are essential
+### Database Operations
+
+#### Backup Database
+```bash
+# Linux/Mac:
+sqlite3 users.db ".backup backup_$(date +%Y%m%d).db"
+
+# Windows PowerShell:
+sqlite3 users.db ".backup backup_$(Get-Date -Format yyyyMMdd).db"
+```
+
+#### Clean Expired Sessions  
+```bash
+# All platforms:
+sqlite3 users.db "DELETE FROM sessions WHERE expires_at < datetime('now');"
+```
+
+#### Database Maintenance
+```bash
+# Check integrity
+sqlite3 users.db "PRAGMA integrity_check;"
+
+# Optimize database
+sqlite3 users.db "VACUUM;"
+```
 
 ## 🚢 Deployment
 
@@ -194,17 +218,28 @@ location / {
 }
 ```
 
-## 🧪 Testing
+## 🧪 Testing & Health Checks
 
+### Health Check
 ```bash
-# Run tests (if available)
-npm test
+# Linux/Mac:
+curl http://localhost:3000/api/health
 
+# Windows PowerShell:
+Invoke-WebRequest -UseBasicParsing http://localhost:3000/api/health
+```
+
+### Security Testing
+```bash
 # Check for vulnerabilities
 npm audit
+npm audit fix  # Auto-fix vulnerabilities
 
-# Lint code (if configured)
-npm run lint
+# Test rate limiting (Linux/Mac)
+for i in {1..10}; do curl -X POST http://localhost:3000/api/login -H "Content-Type: application/json" -d '{"username":"test","password":"test"}'; done
+
+# Test rate limiting (Windows PowerShell)
+1..10 | ForEach-Object { Invoke-WebRequest -Method POST -Uri http://localhost:3000/api/login -ContentType "application/json" -Body '{"username":"test","password":"test"}' }
 ```
 
 ## 📊 API Endpoints
@@ -247,6 +282,79 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Helmet.js](https://helmetjs.github.io/) - Security headers
 - [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) - JWT implementation
 
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+#### "JWT_SECRET not defined"
+```bash
+# Create .env from template
+cp .env.example .env  # Linux/Mac
+Copy-Item .env.example .env  # PowerShell
+
+# Generate secure JWT_SECRET
+# Linux/Mac:
+openssl rand -hex 64
+# Windows PowerShell:
+[System.Convert]::ToHexString((1..64 | ForEach {Get-Random -Maximum 256}))
+```
+
+#### "Account temporarily locked" 
+```bash
+# Wait 30 minutes or manually unlock:
+sqlite3 users.db "UPDATE users SET locked_until = NULL, failed_attempts = 0 WHERE username = 'username';"
+```
+
+#### "Awaiting approval"
+```bash
+# Approve user via admin CLI
+node admin.js  # Then select approve option
+
+# Or disable approval requirement
+# Set in .env: REQUIRE_USER_APPROVAL=false
+```
+
+#### Database Locked Errors
+- Check for multiple server instances
+- Ensure WAL mode is enabled
+- Close any open SQLite CLI connections
+```bash
+# If needed, remove stale lock files (ensure no active connections first!)
+# Linux/Mac:
+rm -f users.db-wal users.db-shm
+# PowerShell:
+Remove-Item users.db-wal, users.db-shm -Force
+```
+
+#### CORS Errors
+```bash
+# Update ALLOWED_ORIGINS in .env
+# Example: ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+```
+
+#### Port Already in Use
+```bash
+# Find process using port 3000
+# Linux/Mac:
+lsof -i :3000
+# Windows PowerShell:
+Get-NetTCPConnection -LocalPort 3000
+
+# Change port in .env: PORT=3001
+```
+
+## 📋 Windows PowerShell Command Reference
+
+| Linux/Mac | Windows PowerShell |
+|-----------|--------------------|
+| `export VAR=value` | `$env:VAR="value"` |
+| `cp src dst` | `Copy-Item src dst` |
+| `rm -rf path` | `Remove-Item path -Recurse -Force` |
+| `curl URL` | `Invoke-WebRequest -UseBasicParsing URL` |
+| `date +%Y%m%d` | `Get-Date -Format yyyyMMdd` |
+| `cat file` | `Get-Content file` |
+| `grep "pattern"` | `Select-String -Pattern "pattern"` |
+
 ## ⚠️ Disclaimer
 
 This is a demonstration/educational project. While it implements many security best practices, always conduct a thorough security audit before using in production environments.
@@ -255,8 +363,9 @@ This is a demonstration/educational project. While it implements many security b
 
 For issues, questions, or suggestions:
 1. Check the [documentation](./SECURITY-CONFIG.md)
-2. Search [existing issues](https://github.com/yourusername/indy-nexus/issues)
-3. Create a new issue with detailed information
+2. For advanced configuration, see [WARP.md](./WARP.md)
+3. Search [existing issues](https://github.com/yourusername/indy-nexus/issues)
+4. Create a new issue with detailed information
 
 ---
 

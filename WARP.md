@@ -1,48 +1,14 @@
-# WARP.md
+# WARP.md - Indy Nexus Technical Architecture
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+> **For Day-to-Day Operations**: See [README.md](./README.md) for:
+> - Server management commands
+> - Admin operations (user approval, etc.)
+> - Database backup/maintenance
+> - Health checks and monitoring
+> - Troubleshooting guide
+> - Windows PowerShell equivalents
 
-## Quick Reference
-
-### Essential Commands
-
-```bash
-# Development
-npm install                    # Install dependencies
-npm run dev                    # Start with nodemon (auto-restart)
-npm start                      # Production start
-
-# Admin Operations  
-node admin.js                  # Interactive admin console
-node admin.js approve <id>     # Quick approve user
-node admin.js list-pending     # Show users awaiting approval
-
-# Database Operations
-sqlite3 users.db ".backup backup.db"     # Backup database
-sqlite3 users.db < schema.sql            # Reset database
-sqlite3 users.db "SELECT * FROM users;"  # Query users
-
-# Testing & Security
-npm audit                      # Check for vulnerabilities
-npm audit fix                  # Auto-fix vulnerabilities
-curl http://localhost:3000/api/health    # Health check
-
-# Deployment
-docker build -t indy-nexus .              # Build Docker image
-docker run -p 3000:3000 --env-file .env indy-nexus  # Run container
-systemctl status indy-nexus               # Check systemd service
-```
-
-### Environment Setup
-
-```bash
-# Create .env from template
-cp .env.example .env
-
-# Generate secure JWT_SECRET (required)
-openssl rand -hex 64  # Linux/Mac
-[System.Convert]::ToHexString((1..64 | ForEach {Get-Random -Maximum 256}))  # Windows PowerShell
-```
+This document covers advanced architecture and configuration details for developers modifying the system.
 
 ## Architecture Overview
 
@@ -192,11 +158,9 @@ CREATE TABLE sessions (
 )
 ```
 
-### Database Maintenance
+### Database Notes
 
-```bash
-# Backup
-sqlite3 users.db ".backup backup_$(date +%Y%m%d).db"
+> See README.md for backup, maintenance, and session cleanup commands
 
 # Restore
 sqlite3 users.db < backup.sql
@@ -211,150 +175,49 @@ sqlite3 users.db "PRAGMA integrity_check;"
 sqlite3 users.db "VACUUM;"
 ```
 
-## Deployment Configurations
+## Deployment Notes
 
-### Docker Deployment
-```bash
-# Build and run
-docker build -t indy-nexus .
-docker run -d \
-  -p 3000:3000 \
-  --env-file .env \
-  -v $(pwd)/users.db:/app/users.db \
-  --restart unless-stopped \
-  --name indy-nexus \
-  indy-nexus
-```
-
-### Systemd Service
-Service file at `indy-nexus.service`:
-- Auto-restart on failure
-- Environment file: `/etc/indy-nexus/.env`
-- User: `indy-nexus` (non-root)
-- Working directory: `/opt/indy-nexus`
+> See README.md for Docker and systemd deployment instructions
 
 ### Production Checklist
-- [ ] Set NODE_ENV=production
-- [ ] Use strong JWT_SECRET (min 64 chars)
-- [ ] Enable REQUIRE_USER_APPROVAL=true
-- [ ] Configure HTTPS/TLS termination
-- [ ] Set up database backups
-- [ ] Configure log rotation
-- [ ] Monitor failed login attempts
-- [ ] Review rate limit settings
+- NODE_ENV=production
+- Strong JWT_SECRET (64+ chars)
+- REQUIRE_USER_APPROVAL=true
+- HTTPS/TLS termination
+- Backup automation
+- Log rotation
+- Failed login monitoring
 
-## Common Development Tasks
+## Development Configuration
 
-### Add New API Endpoint
-1. Define route in `server.js`
-2. Add authentication middleware if protected
-3. Implement input validation
-4. Add rate limiting if needed
-5. Update API documentation
+### Key Config Objects
+- **Argon2**: `ARGON2_CONFIG` object  
+- **Rate Limits**: `authLimiter`, `apiLimiter`
+- **JWT Expiry**: `expiresIn` parameter
+- **Lockout Duration**: ~Line 316 in server.js
 
-### Modify Database Schema
-1. Create migration SQL file
-2. Test on development database
-3. Backup production database
-4. Apply migration
-5. Update prepared statements in server
+### Adding New Features
+- New API: Route → Auth middleware → Validation → Rate limit
+- Schema changes: Migration SQL → Test → Backup → Apply → Update statements
 
-### Debug Authentication Issues
-1. Check `/api/health` endpoint
-2. Review failed_attempts in users table
-3. Check locked_until timestamps
-4. Verify JWT_SECRET matches
-5. Review audit_log (enhanced server)
+## Performance Notes
 
-### Update Security Settings
-1. Argon2 config: `ARGON2_CONFIG` object
-2. Rate limits: `authLimiter`, `apiLimiter`
-3. JWT expiry: `expiresIn` parameter
-4. Lockout duration: Line ~316 in server.js
-
-## Testing Guidelines
-
-### Manual Testing Checklist
-- [ ] Registration with valid/invalid inputs
-- [ ] Login with correct/incorrect credentials
-- [ ] Account lockout after 5 failures
-- [ ] JWT token expiry handling
-- [ ] Admin approval workflow
-- [ ] Protected endpoint access
-- [ ] Rate limit enforcement
-- [ ] Non-English character rejection
-
-### Security Testing
-```bash
-# Test rate limiting
-for i in {1..10}; do curl -X POST http://localhost:3000/api/login -H "Content-Type: application/json" -d '{"username":"test","password":"test"}'; done
-
-# Test large payload rejection
-curl -X POST http://localhost:3000/api/register -H "Content-Type: application/json" -d @large_payload.json
-
-# Check security headers
-curl -I http://localhost:3000
-```
-
-## Performance Optimization
-
-### Database
+### Database Optimization
 - Indexes on username, email, is_active
-- WAL mode for concurrent reads
+- WAL mode for concurrent reads  
 - Prepared statements cached
-- Connection pooling not needed (SQLite)
 
-### Server
+### Server Optimization  
 - Compression middleware enabled
 - Static file caching (1 hour)
-- JWT verification cached (planned)
-- Session cleanup cron (implement)
+- JWT verification caching (planned)
 
-## Troubleshooting
+> **Troubleshooting**: See README.md §Troubleshooting for common issues and solutions
 
-### Common Issues
+## File Structure
 
-1. **"JWT_SECRET not defined"**
-   - Create `.env` file from `.env.example`
-   - Set JWT_SECRET to secure random string
-
-2. **"Account temporarily locked"**
-   - Wait 30 minutes or manually unlock:
-   ```sql
-   UPDATE users SET locked_until = NULL, failed_attempts = 0 WHERE username = 'user';
-   ```
-
-3. **"Awaiting approval"** 
-   - Run `node admin.js` and approve user
-   - Or set `REQUIRE_USER_APPROVAL=false` in `.env`
-
-4. **Database locked errors**
-   - Check for multiple server instances
-   - Ensure WAL mode is enabled
-   - Close SQLite CLI connections
-
-5. **CORS errors**
-   - Update `ALLOWED_ORIGINS` in `.env`
-   - Check Origin header in request
-
-## Important Files Reference
-
-- **Configuration**: `.env`, `config.js`
-- **Main Server**: `server.js` (standard), `server-enhanced.js` (advanced)
-- **Admin Tools**: `admin.js`
-- **Frontend**: `index.html`, `login.html`, `register.html`, `auth.js`
-- **Styles**: `styles.css`, `auth-styles.css`
-- **Security Docs**: `SECURITY-CONFIG.md`, `SECURITY-OPS-GUIDE.md`
-- **Deployment**: `deploy.sh`, `Dockerfile`, `indy-nexus.service`
+- **Servers**: `server.js` (standard), `server-enhanced.js` (2FA/audit)
+- **Admin**: `admin.js` CLI tool
+- **Frontend**: `index.html`, `login.html`, `register.html`
+- **Config**: `.env`, `config.js`
 - **Database**: `users.db` (auto-created)
-
-## Development Best Practices
-
-1. **Never expose secrets**: Use environment variables
-2. **Validate all inputs**: Both client and server side
-3. **Log security events**: Failed logins, lockouts, non-English attempts
-4. **Test edge cases**: Unicode inputs, large payloads, rapid requests
-5. **Keep dependencies updated**: Run `npm audit` weekly
-6. **Review PR changes**: Especially authentication/security code
-7. **Document API changes**: Update this file and API docs
-8. **Backup before migrations**: Always backup production database
