@@ -23,7 +23,7 @@ const validator = require('validator');
 
 // Configuration from environment variables (more secure)
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 46228;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const DATABASE_PATH = process.env.DATABASE_PATH || './users.db';
 
@@ -140,7 +140,7 @@ try {
             failed_attempts INTEGER DEFAULT 0,
             locked_until DATETIME,
             is_active BOOLEAN DEFAULT 1,
-            is_verified BOOLEAN DEFAULT 0,
+            is_approved BOOLEAN DEFAULT 0,
             password_changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             two_factor_secret TEXT,
             backup_codes TEXT,
@@ -231,7 +231,7 @@ const statements = {
         'INSERT INTO sessions (user_id, token_hash, ip_address, user_agent, fingerprint, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
     ),
     getUserProfile: db.prepare(
-        'SELECT id, username, email, created_at, last_login, is_verified FROM users WHERE id = ?'
+        'SELECT id, username, email, created_at, last_login, is_approved FROM users WHERE id = ?'
     ),
     unlockAccount: db.prepare(
         'UPDATE users SET locked_until = NULL, failed_attempts = 0 WHERE id = ?'
