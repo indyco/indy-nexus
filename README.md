@@ -29,8 +29,8 @@ A modern, secure authentication system built with Node.js, Express, and SQLite, 
 
 ## 📋 Prerequisites
 
-- **Node.js**: Version 14.0.0 or higher
-- **npm**: Version 6.0.0 or higher
+- **Node.js**: Version 20.0.0 or higher (LTS recommended)
+- **npm**: Version 8.0.0 or higher
 - **SQLite3**: Installed on your system (optional, for CLI access)
 
 ## 🚀 Quick Start
@@ -68,15 +68,28 @@ openssl rand -hex 64
 The database will be created automatically when you first run the server. The file will be created at the path specified in `DATABASE_PATH` (default: `./users.db`).
 
 ### 5. Start the Server
+
+**Windows (Recommended):**
+```powershell
+# Quick start with browser
+.\serve.ps1 -OpenBrowser
+
+# With enhanced security
+.\serve.ps1 -SecurityPreset enhanced
+```
+
+**Cross-Platform:**
 ```bash
 # Development mode with auto-restart
 npm run dev
 
-# Production mode
-npm start
+# Production mode with enhanced security
+npm run start:enhanced
 ```
 
 The server will start on `http://localhost:3000` (or the port specified in your `.env` file).
+
+> **📘 Note:** The server now uses an **adaptive security system** with two presets: `basic` for development and `enhanced` for production. See [UNIFIED-SERVER.md](UNIFIED-SERVER.md) for detailed configuration.
 
 ## 📁 Project Structure
 
@@ -85,17 +98,20 @@ indy-nexus/
 ├── .env.example           # Environment variables template
 ├── .gitignore            # Git ignore rules
 ├── package.json          # Node.js dependencies
-├── server.js             # Main server file
-├── server-enhanced.js    # Enhanced security server (optional)
+├── server.js             # Unified server with adaptive security
+├── config/               # Configuration modules
+│   └── index.js         # Environment and preset manager
 ├── admin.js              # CLI tool for user management
-├── config.js             # Frontend configuration
+├── serve.ps1             # Windows development helper
+├── deploy.sh             # Linux production deployment
 ├── auth.js               # Frontend authentication logic
 ├── index.html            # Landing page
 ├── login.html            # Login page
 ├── register.html         # Registration page
 ├── auth-styles.css       # Authentication pages styling
 ├── styles.css            # General styling
-└── *.md                  # Documentation files
+├── README.md             # This file
+└── UNIFIED-SERVER.md     # Detailed server documentation
 ```
 
 ## 🔧 Configuration
@@ -104,13 +120,21 @@ All configuration is done through environment variables. See `.env.example` for 
 
 ### Key Configuration Options
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `JWT_SECRET` | Secret key for JWT signing (min 64 chars) | ✅ Yes |
-| `PORT` | Server port (default: 3000) | No |
-| `NODE_ENV` | Environment (development/production) | No |
-| `DATABASE_PATH` | Path to SQLite database | No |
-| `REQUIRE_USER_APPROVAL` | Enable admin approval for new users | No |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|----------|
+| `JWT_SECRET` | Secret key for JWT signing (min 64 chars) | ✅ Yes | None |
+| `SECURITY_PRESET` | Security level: `basic` or `enhanced` | No | `basic` |
+| `PORT` | Server port | No | 3000 |
+| `NODE_ENV` | Environment (development/production) | No | development |
+| `DATABASE_PATH` | Path to SQLite database | No | ./users.db |
+| `REQUIRE_USER_APPROVAL` | Enable admin approval for new users | No | false |
+
+### Security Presets
+
+- **`basic`** - Development-friendly with relaxed security
+- **`enhanced`** - Production-ready with full security stack
+
+See [UNIFIED-SERVER.md](UNIFIED-SERVER.md#security-presets) for complete preset details.
 
 ## 👤 User Management
 

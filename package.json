@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start:basic": "cross-env NODE_ENV=development SECURITY_PRESET=basic node server.js",
+    "start:enhanced": "cross-env NODE_ENV=production SECURITY_PRESET=enhanced node server.js",
+    "dev": "cross-env NODE_ENV=development SECURITY_PRESET=basic nodemon server.js",
+    "dev:enhanced": "cross-env NODE_ENV=development SECURITY_PRESET=enhanced nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -33,6 +36,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.0.2"
   },
   "engines": {

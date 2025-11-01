@@ -1,223 +1,101 @@
-# WARP.md - Indy Nexus Technical Architecture
+# WARP.md - Indy Nexus AI Agent Guide
 
-> **For Day-to-Day Operations**: See [README.md](./README.md) for:
-> - Server management commands
-> - Admin operations (user approval, etc.)
-> - Database backup/maintenance
-> - Health checks and monitoring
-> - Troubleshooting guide
-> - Windows PowerShell equivalents
+> **Operations & Commands**: See [README.md](./README.md)
 
-This document covers advanced architecture and configuration details for developers modifying the system.
+This guide helps AI agents understand and modify the codebase efficiently.
 
-## Architecture Overview
+## Quick Architecture
 
-### System Components
+**Stack**: Node.js/Express + SQLite + Argon2 + JWT  
+**Frontend**: Static HTML/CSS/JS (green theme) - `index.html`, `login.html`, `register.html`  
+**Backend**: Two variants - `server.js` (standard) or `server-enhanced.js` (with 2FA)  
+**Database**: SQLite with tables: `users`, `sessions`, `audit_log` (enhanced only)  
+**Security**: Helmet.js, rate limiting (5 auth/15min), Argon2id hashing, 30min lockout  
+**Admin**: `admin.js` CLI for user management
 
-The Indy Nexus authentication system is built with a layered security architecture:
+## Key Dependencies
 
-1. **Web Layer** (`index.html`, `login.html`, `register.html`)
-   - Static HTML/CSS/JS frontend
-   - Green-themed UI with black background
-   - Client-side validation with real-time feedback
-   - JWT token management in localStorage
+- `express` - Web framework
+- `better-sqlite3` - SQLite driver  
+- `argon2` - Password hashing
+- `jsonwebtoken` - JWT tokens
+- `helmet` - Security headers
+- `express-rate-limit` - Rate limiting
+- `dotenv` - Environment variables
+- `cors` - CORS handling
 
-2. **API Layer** (`server.js` / `server-enhanced.js`)
-   - Express.js REST API
-   - Two server variants:
-     - `server.js`: Standard security implementation
-     - `server-enhanced.js`: Advanced security with 2FA, audit logging, enhanced monitoring
-   - Endpoints: `/api/register`, `/api/login`, `/api/logout`, `/api/profile`, `/api/verify`
+## API Endpoints
 
-3. **Security Middleware Stack** (order matters)
-   - Helmet.js: Security headers (CSP, HSTS, X-Frame-Options)
-   - CORS: Controlled cross-origin access
-   - Express Rate Limit: 5 auth attempts per 15 minutes
-   - Body size limits: 10kb max payload
-   - Mongo-sanitize: NoSQL injection prevention
-   - HPP: HTTP parameter pollution prevention
-   - XSS: Cross-site scripting protection
+- `POST /api/register` - New user registration (creates with is_approved=0)
+- `POST /api/login` - User login (returns JWT token)
+- `POST /api/logout` - Logout user
+- `GET /api/verify` - Verify JWT token
+- `GET /api/profile` - Get user profile (protected)
+- `GET /api/health` - Health check endpoint
 
-4. **Authentication Layer**
-   - Argon2id password hashing (PHC winner, more secure than bcrypt)
-     - Memory: 128MB (enhanced) / 64MB (standard)
-     - Iterations: 4 (enhanced) / 3 (standard)  
-     - Salt: 32 bytes (enhanced) / 16 bytes (standard)
-   - JWT tokens with 24-hour expiry
-   - Session tracking with IP/User-Agent logging
-   - Account lockout after 5 failed attempts (30-minute lock)
+## Key Validation Rules
 
-5. **Data Layer** (`better-sqlite3`)
-   - SQLite database with security pragmas
-   - Tables: `users`, `sessions`, `audit_log` (enhanced only)
-   - Prepared statements for SQL injection prevention
-   - Foreign key constraints enabled
-   - WAL mode for better concurrency
-
-6. **Admin Tools** (`admin.js`)
-   - Interactive CLI for user management
-   - Approval workflow for new registrations
-   - User listing, approval, rejection, deactivation
-   - Direct database manipulation capabilities
-
-### Authentication Flow
-
-```
-1. Registration
-   Client → POST /api/register → Validate inputs → Check English-only
-   → Hash password (Argon2) → Insert user (is_approved=0) → Return success
-
-2. Admin Approval (if REQUIRE_USER_APPROVAL=true)
-   Admin → node admin.js → List pending → Approve user → Set is_approved=1
-
-3. Login
-   Client → POST /api/login → Validate → Check approval status
-   → Verify password → Reset failed attempts → Generate JWT → Store session → Return token
-
-4. Protected Requests
-   Client → Add "Authorization: Bearer <token>" → Verify JWT → Process request
-
-5. Lockout Flow
-   Failed login → Increment failed_attempts → If >= 5, set locked_until (+30 min)
-   → Return 423 status → Auto-unlock after timeout
-```
-
-## Security Implementation Details
-
-### Input Validation
-
-- **English-only enforcement**: All usernames/passwords restricted to ASCII
-  - Prevents Unicode attacks, homograph attacks, encoding issues
-  - Silent rejection with generic errors to confuse attackers
-  - Logged as security events for monitoring
-
-- **Username**: `/^[a-zA-Z0-9_]{3,30}$/`
-- **Password**: 20-84 chars, must include uppercase, lowercase, number, special char
-- **Email**: Standard email regex with additional sanitization
-
-### Rate Limiting Strategy
-
-```javascript
-// Authentication endpoints: Strict
-authLimiter: 5 requests per 15 minutes per IP
-
-// API endpoints: Moderate  
-apiLimiter: 100 requests per minute per IP
-
-// Bypass for successful requests: No
-// Distributed tracking: Database-backed (planned)
-```
-
-### Security Headers (Helmet.js)
-
-- CSP: Default-src 'self', inline styles allowed for theme
-- HSTS: 1 year max-age with preload
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- Referrer-Policy: no-referrer
-
-### Account Security
-
-- Lockout: 5 failed attempts = 30-minute lock
-- Session expiry: 24 hours (configurable)
-- Password history: Not implemented (consider for enhanced)
-- 2FA: Available in `server-enhanced.js` only
+- **Username**: `/^[a-zA-Z0-9_]{3,30}$/` (English only)
+- **Password**: 20-84 chars, must have: uppercase, lowercase, number, special char
+- **Email**: Standard email validation
+- **Rate limits**: Auth: 5/15min, API: 100/min
+- **Lockout**: 5 failed attempts = 30min lock
 
 ## Database Schema
 
-### Users Table
-```sql
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL, 
-    password_hash TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME,
-    failed_attempts INTEGER DEFAULT 0,
-    locked_until DATETIME,
-    is_active BOOLEAN DEFAULT 1,
-    is_approved BOOLEAN DEFAULT 0,  -- Approval workflow
-    approved_at DATETIME,
-    approved_by TEXT,
-    approval_notes TEXT
-)
+**users table**: id, username, email, password_hash, created_at, last_login, failed_attempts, locked_until, is_active, is_approved, approved_at, approved_by, approval_notes
+
+**sessions table**: id, user_id, token_hash, ip_address, user_agent, created_at, expires_at
+
+**audit_log table** (enhanced only): id, user_id, action, ip_address, user_agent, created_at
+
+## Environment Variables
+
+**Required**: `JWT_SECRET` (64+ chars)  
+**Important**: `PORT` (default: 3000/46228), `NODE_ENV`, `DATABASE_PATH`, `REQUIRE_USER_APPROVAL`  
+**Security**: `MAX_LOGIN_ATTEMPTS=5`, `LOCKOUT_DURATION_MINUTES=30`, `SESSION_DURATION_HOURS=24`
+
+## Code Locations
+
+- **Config objects**: `ARGON2_CONFIG`, `authLimiter`, `apiLimiter` in server files
+- **Auth middleware**: Look for `authenticateToken` function
+- **Validation**: Input validation in route handlers
+- **Database queries**: Prepared statements in `statements` object
+
+## Development Workflow
+
+1. **Local dev**: Run `./serve.ps1` (Windows) or `npm run dev` (cross-platform)
+2. **Test auth**: Use provided admin credentials or create new user
+3. **Add features**: New routes go in server.js, follow existing patterns
+4. **Database changes**: Update schema, then prepared statements
+
+## Testing Strategy
+
+- **No test framework installed** - Consider adding Jest or Mocha
+- **Manual testing**: Use curl/Postman for API endpoints
+- **Security**: Run `npm audit` regularly
+- **Linting**: No linter configured - consider ESLint
+
+## Common Tasks for AI Agents
+
+### Adding a New API Endpoint
+```javascript
+// In server.js, add after existing routes:
+app.post('/api/your-endpoint', authenticateToken, async (req, res) => {
+    // Validation
+    // Business logic  
+    // Database operations using prepared statements
+    // Return JSON response
+});
 ```
 
-### Sessions Table
-```sql
-CREATE TABLE sessions (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    token_hash TEXT NOT NULL,
-    ip_address TEXT,
-    user_agent TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-)
-```
+### Modifying Frontend
+- Files: `index.html`, `login.html`, `register.html`
+- Styles: `styles.css` (main), `auth-styles.css` (auth pages)
+- JS: `auth.js` handles authentication logic
+- Theme: Green text (#00ff00) on black background
 
-### Database Notes
-
-> See README.md for backup, maintenance, and session cleanup commands
-
-# Restore
-sqlite3 users.db < backup.sql
-
-# Clean expired sessions
-sqlite3 users.db "DELETE FROM sessions WHERE expires_at < datetime('now');"
-
-# Check database integrity
-sqlite3 users.db "PRAGMA integrity_check;"
-
-# Vacuum (defragment)
-sqlite3 users.db "VACUUM;"
-```
-
-## Deployment Notes
-
-> See README.md for Docker and systemd deployment instructions
-
-### Production Checklist
-- NODE_ENV=production
-- Strong JWT_SECRET (64+ chars)
-- REQUIRE_USER_APPROVAL=true
-- HTTPS/TLS termination
-- Backup automation
-- Log rotation
-- Failed login monitoring
-
-## Development Configuration
-
-### Key Config Objects
-- **Argon2**: `ARGON2_CONFIG` object  
-- **Rate Limits**: `authLimiter`, `apiLimiter`
-- **JWT Expiry**: `expiresIn` parameter
-- **Lockout Duration**: ~Line 316 in server.js
-
-### Adding New Features
-- New API: Route → Auth middleware → Validation → Rate limit
-- Schema changes: Migration SQL → Test → Backup → Apply → Update statements
-
-## Performance Notes
-
-### Database Optimization
-- Indexes on username, email, is_active
-- WAL mode for concurrent reads  
-- Prepared statements cached
-
-### Server Optimization  
-- Compression middleware enabled
-- Static file caching (1 hour)
-- JWT verification caching (planned)
-
-> **Troubleshooting**: See README.md §Troubleshooting for common issues and solutions
-
-## File Structure
-
-- **Servers**: `server.js` (standard), `server-enhanced.js` (2FA/audit)
-- **Admin**: `admin.js` CLI tool
-- **Frontend**: `index.html`, `login.html`, `register.html`
-- **Config**: `.env`, `config.js`
-- **Database**: `users.db` (auto-created)
+### Database Migrations
+- No migration tool - manually update schema
+- After schema changes, update prepared statements in server files
+- Test locally before deploying
